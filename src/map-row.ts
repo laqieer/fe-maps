@@ -127,7 +127,7 @@ export class MapRow extends LitElement {
       this.expanded = true;
     }
     await this.updateComplete;
-    let element = this.shadowRoot?.querySelector('.' + key)! as HTMLElement;
+    const element = this.shadowRoot?.querySelector('.' + key)! as HTMLElement;
     if (shouldScroll) {
       // Account for the sticky header.
       const yOffset = 140;
@@ -142,23 +142,23 @@ export class MapRow extends LitElement {
     result: { row: number[], key: string }, shouldScroll: boolean) {
     this.expanded = true;
     await this.updateComplete;
-    let table = this.shadowRoot?.querySelector('map-table')!;
+    const table = this.shadowRoot?.querySelector('map-table')!;
     table.highlight(result, shouldScroll);
   }
 
   clearHighlights() {
-    let highlights =
+    const highlights =
       Array.from(this.shadowRoot?.querySelectorAll('.highlight')!);
     highlights.forEach(el => el.classList.remove('highlight'));
     if (this.expanded) {
-      let table = this.shadowRoot?.querySelector('map-table')!;
+      const table = this.shadowRoot?.querySelector('map-table')!;
       table.clearHighlights();
     }
   }
 
   collapseAll() {
     if (this.expanded) {
-      let table = this.shadowRoot?.querySelector('map-table')!;
+      const table = this.shadowRoot?.querySelector('map-table')!;
       table.collapseAll();
     }
     this.expanded = false;
@@ -172,7 +172,7 @@ export class MapRow extends LitElement {
     if (this.data.size) {
       return getHexVal(this.data.size as GameVal, this.version);
     }
-    let type = (this.data.type as string).split('.')[0];
+    const type = (this.data.type as string).split('.')[0];
     if (type in this.structs) {
       const struct = this.structs[type] as { size: GameVal }
       return getHexVal(struct.size, this.version);
@@ -197,7 +197,7 @@ export class MapRow extends LitElement {
   }
 
   private getOffsetAddr() {
-    let off = parseInt(this.data.offset as string, 16);
+    const off = parseInt(this.data.offset as string, 16);
     return this.toHex(parseInt(this.parentAddress, 16) + off);
   }
 

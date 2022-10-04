@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { css, customElement, html, LitElement, property } from 'lit-element';
 import "./map-row";
@@ -108,7 +109,7 @@ export class MapTable extends LitElement {
 
   private getClasses() {
     if (this.version) {
-      let classes = ['addr', 'size', 'desc'];
+      const classes = ['addr', 'size', 'desc'];
       if (this.maptype === 'code') {
         classes.push('params', 'return');
       }
@@ -124,7 +125,7 @@ export class MapTable extends LitElement {
     if (!result) {
       return;
     }
-    let rowElement = this.shadowRoot?.querySelectorAll('map-row')[result.row[0]]!;
+    const rowElement = this.shadowRoot?.querySelectorAll('map-row')[result.row[0]]!;
     if (result.row.length == 1) {
       rowElement.highlightCell(result.key, shouldScroll);
     } else {
@@ -134,18 +135,18 @@ export class MapTable extends LitElement {
   }
 
   clearHighlights() {
-    let rows = Array.from(this.shadowRoot?.querySelectorAll('map-row')!);
+    const rows = Array.from(this.shadowRoot?.querySelectorAll('map-row')!);
     rows.forEach(row => row.clearHighlights());
   }
 
   collapseAll() {
-    let rows = Array.from(this.shadowRoot?.querySelectorAll('map-row')!);
+    const rows = Array.from(this.shadowRoot?.querySelectorAll('map-row')!);
     rows.forEach(row => row.collapseAll());
   }
 
   private getHeadings(mapType: string) {
     if (this.version) {
-      let headings = ['Address', 'Length', 'Description'];
+      const headings = ['Address', 'Length', 'Description'];
       if (mapType === 'code') {
         headings.push('Arguments', 'Returns');
       }
@@ -161,7 +162,7 @@ export class MapTable extends LitElement {
   private getData(sortFn: ((a: any, b: any) => number) | undefined) {
     const data = this.version ? this.getVersionedData(this.version) : this.data;
     if (sortFn) {
-      let sortedData = data.slice();
+      const sortedData = data.slice();
       sortedData.sort(sortFn);
       return sortedData;
     } else {
@@ -185,8 +186,8 @@ export class MapTable extends LitElement {
     }
     if (columnHeadings.includes(labelEl.innerText.trim())) {
       this.sortedHeading = labelEl.innerText.trim();
-      let keyIndex = columnHeadings.indexOf(labelEl.innerText.trim());
-      let key = columnKeys[keyIndex];
+      const keyIndex = columnHeadings.indexOf(labelEl.innerText.trim());
+      const key = columnKeys[keyIndex];
       this.sortFn =
         (a: { [key: string]: unknown }, b: { [key: string]: unknown }) => {
           if (key == 'addr' || key == 'offset' || key == 'val') {

@@ -72,9 +72,9 @@ export class MapApp extends LitElement {
 
   @property({ type: Number }) resultCount = 0;
 
-  @property({ type: String }) game = 'mf';
+  @property({ type: String }) game = 'fe6';
 
-  @property({ type: String }) version = 'U';
+  @property({ type: String }) version = 'J';
 
   @property({ type: String }) map = 'ram';
 
@@ -121,7 +121,14 @@ export class MapApp extends LitElement {
   }
 
   private getVersions() {
-    return ['U', 'E', 'J'];
+    switch (this.game) {
+      case 'fe6':
+        return ['J'];
+      case 'fe8':
+        return ['U'];
+      default:
+        return ['J', 'U', 'E'];
+    }
   }
 
   async fetchData() {
@@ -141,7 +148,7 @@ export class MapApp extends LitElement {
   }
 
   private inputHandler(e: Event) {
-    let ke = (e as KeyboardEvent);
+    const ke = (e as KeyboardEvent);
     if (ke.key == 'Enter') {
       this.performSearch(
         this.shadowRoot?.querySelector('input')!.value || '', !ke.shiftKey);
@@ -210,7 +217,7 @@ export class MapApp extends LitElement {
     if (!forward && this.seenResults.length && this.resultIndex > 0) {
       // go backwards to previous result
       this.resultIndex = this.resultIndex - 1;
-      let result = this.seenResults[this.resultIndex - 1];
+      const result = this.seenResults[this.resultIndex - 1];
       this.shadowRoot?.querySelector('map-table')!.highlight(result);
       await Promise.resolve();
       return;
@@ -218,7 +225,7 @@ export class MapApp extends LitElement {
     if (this.resultIndex < this.seenResults.length) {
       // go forwards through already generated results
       this.resultIndex++;
-      let result = this.seenResults[this.resultIndex - 1];
+      const result = this.seenResults[this.resultIndex - 1];
       this.shadowRoot?.querySelector('map-table')!.highlight(result);
       await Promise.resolve();
       return;
@@ -232,7 +239,7 @@ export class MapApp extends LitElement {
       return;
     }
     // deep copy of object with array
-    let storage = Object.assign({}, result);
+    const storage = Object.assign({}, result);
     storage.row = storage.row.slice();
     this.seenResults.push(storage);
     this.resultIndex = this.resultIndex + 1;
@@ -244,7 +251,7 @@ export class MapApp extends LitElement {
     query: string, data: Array<{ [key: string]: unknown }>,
     rowStart: number[]): Generator<{ row: number[], key: string }> {
     for (let i = 0; i < data.length; i++) {
-      let row = data[i] as { [key: string]: unknown };
+      const row = data[i] as { [key: string]: unknown };
 
       // get fields we want to search
       let keys = Object.keys(row);
@@ -261,7 +268,7 @@ export class MapApp extends LitElement {
             if (row[thisKey] === null) {
               searchable = 'void';
             } else {
-              let params = row[thisKey] as Array<{ [key: string]: unknown }>;
+              const params = row[thisKey] as Array<{ [key: string]: unknown }>;
               searchable = params.map(p => p.desc).join(',');
             }
             break;
@@ -269,7 +276,7 @@ export class MapApp extends LitElement {
             if (row[thisKey] === null) {
               searchable = 'void';
             } else {
-              let ret = row[thisKey] as { [key: string]: unknown };
+              const ret = row[thisKey] as { [key: string]: unknown };
               searchable = ret.desc as string;
             }
             break;
@@ -311,12 +318,12 @@ export class MapApp extends LitElement {
   private getGames() {
     return [
       {
-        label: 'Metroid Fusion',
-        value: 'mf',
+        label: 'Fire Emblem: Binding Blade',
+        value: 'fe6',
       },
       {
-        label: 'Metroid Zero Mission',
-        value: 'zm',
+        label: 'Fire Emblem: The Sacred Stones',
+        value: 'fe8',
       },
     ];
   }
@@ -371,7 +378,7 @@ export class MapApp extends LitElement {
   override render() {
     return html`
       <div id="page">
-        <h1>GBA Metroid Data Maps</h1>
+        <h1>GBA Fire Emblem Data Maps</h1>
         <div id="banner">
           <p>
             <select id="game-select" @change="${this.gameChangeHandler}">
