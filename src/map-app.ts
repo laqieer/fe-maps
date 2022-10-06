@@ -72,11 +72,11 @@ export class MapApp extends LitElement {
 
   @property({ type: Number }) resultCount = 0;
 
-  @property({ type: String }) game = 'fe6';
+  @property({ type: String }) game = 'fe8';
 
-  @property({ type: String }) version = 'J';
+  @property({ type: String }) version = 'U';
 
-  @property({ type: String }) map = 'ram';
+  @property({ type: String }) map = 'code';
 
   @property({ type: Boolean }) fetchingData = false;
 
@@ -137,7 +137,7 @@ export class MapApp extends LitElement {
     }
 
     this.fetchingData = true;
-    const targetBaseUrl = `/json/${this.game}/`;
+    const targetBaseUrl = `/info/json/${this.game}/`;
     this.enums = await fetch(targetBaseUrl + 'enums.json')
       .then(response => response.json());
     this.structs = await fetch(targetBaseUrl + 'structs.json')
@@ -331,16 +331,16 @@ export class MapApp extends LitElement {
   private getMaps() {
     return [
       {
-        label: 'RAM',
-        value: 'ram',
-      },
-      {
         label: 'ROM Code',
         value: 'code',
       },
       {
         label: 'ROM Data',
         value: 'data',
+      },
+      {
+        label: 'RAM',
+        value: 'ram',
       },
     ];
   }
@@ -350,7 +350,7 @@ export class MapApp extends LitElement {
   }
 
   private gameChangeHandler() {
-    // mf, zm
+    // fe6, fe8
     this.game =
       (this.shadowRoot!.querySelector('#game-select')! as HTMLInputElement)
         .value;
@@ -359,7 +359,7 @@ export class MapApp extends LitElement {
   }
 
   private versionChangeHandler() {
-    // U, E, J
+    // J, U, E
     this.version =
       (this.shadowRoot!.querySelector('#version-select')! as HTMLInputElement)
         .value;
@@ -367,7 +367,7 @@ export class MapApp extends LitElement {
   }
 
   private mapChangeHandler() {
-    // ram, code, data
+    // code, data, ram
     this.map =
       (this.shadowRoot!.querySelector('#map-select')! as HTMLInputElement)
         .value;

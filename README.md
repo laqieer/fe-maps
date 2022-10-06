@@ -1,6 +1,8 @@
-# GBA Metroid Data Maps
+# GBA Fire Emblem Data Maps
 
-Source code for app at labk.org/maps
+Source code for app at laqieer.github.io/fe-maps
+
+*Inspired by [GBA Metroid Data Maps](https://github.com/biosp4rk/maps)*
 
 ## Setup
 

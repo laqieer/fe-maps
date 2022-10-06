@@ -1,0 +1,3 @@
+[submodule "info"]
+	path = info
+	url = https://github.com/laqieer/fe-info.git
