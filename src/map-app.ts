@@ -19,6 +19,10 @@ export class MapApp extends LitElement {
       margin: 0;
     }
 
+    p {
+      text-align: center;
+    }
+
     #page {
       padding-bottom: 40px
     }
@@ -379,6 +383,7 @@ export class MapApp extends LitElement {
     return html`
       <div id="page">
         <h1>GBA Fire Emblem Data Maps</h1>
+        <p><a href='https://github.com/laqieer/fe-maps'>Source Code</a></p>
         <div id="banner">
           <p>
             <select id="game-select" @change="${this.gameChangeHandler}">
