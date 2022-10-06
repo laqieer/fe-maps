@@ -141,7 +141,7 @@ export class MapApp extends LitElement {
     }
 
     this.fetchingData = true;
-    const targetBaseUrl = `/info/json/${this.game}/`;
+    const targetBaseUrl = `./info/json/${this.game}/`;
     this.enums = await fetch(targetBaseUrl + 'enums.json')
       .then(response => response.json());
     this.structs = await fetch(targetBaseUrl + 'structs.json')
