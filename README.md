@@ -1,5 +1,7 @@
 # GBA Fire Emblem Data Maps
 
+[![Build and deploy GitHub Pages](https://github.com/laqieer/fe-maps/actions/workflows/build-deploy-pages.yml/badge.svg)](https://github.com/laqieer/fe-maps/actions/workflows/build-deploy-pages.yml)
+
 Source code for app at laqieer.github.io/fe-maps
 
 *Inspired by [GBA Metroid Data Maps](https://github.com/biosp4rk/maps)*
