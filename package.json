@@ -7,7 +7,7 @@
   "module": "map-app.js",
   "type": "module",
   "scripts": {
-    "build": "rollup -c",
+    "build": "npm run build-js && rollup -c",
     "build-js": "tsc",
     "watch": "rollup -c -w",
     "dev": "npm-run-all --parallel start watch",
@@ -45,7 +45,7 @@
   "author": "laqieer",
   "license": "BSD-3-Clause",
   "dependencies": {
-    "lit": "^2.2.0"
+    "lit": "^2.6.1"
   },
   "devDependencies": {
     "@11ty/eleventy": "^0.12.1",

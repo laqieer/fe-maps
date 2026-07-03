@@ -1,12 +1,19 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { LitElement, html, css } from 'lit';
+import { property, customElement } from 'lit/decorators.js';
+import {
+  GameEntry, GameVar, GameData, GameRelVar, GameStructDict,
+  GameEnumDict, GameCode, GameEnumVal, GameStruct, GameEnum
+} from './entry-types';
+import { toHex } from './utils';
+import {
+  TableType, KEY_ADDR, KEY_CAT, KEY_DESC, KEY_LABEL, KEY_LEN, KEY_NOTES,
+  KEY_OFF, KEY_PARAMS, KEY_RET, KEY_SIZE, KEY_TYPE, KEY_VAL, KEY_VALS,
+  KEY_VARS, CATEGORIES, getHeading
+} from './constants';
 
-import { css, customElement, html, LitElement, property } from 'lit-element';
-import "./map-row";
-import { getHexVal } from './utils';
+const grayBorder = css`1px solid #808080`;
 
-/**
- * Renders a table.
- */
+/** Renders a table */
 @customElement('map-table')
 export class MapTable extends LitElement {
   static override styles = css`
@@ -14,243 +21,493 @@ export class MapTable extends LitElement {
       display: block;
     }
 
-    .heading {
-      box-sizing: border-box;
-      cursor: pointer;
-      display: inline-block;
-      font-weight: 700;
-      overflow: hidden;
-      padding: 3px;
-      text-overflow: ellipsis;
+    table, th, td {
+      border: ${grayBorder};
+      border-collapse: collapse;
+    }
+
+    th {
+      padding: 3px 10px;
+    }
+
+    td {
+      overflow-wrap: normal;
+      padding: 3px 5px;
       vertical-align: top;
     }
 
-    .size {
-      width: 5em;
+    tbody tr:nth-child(odd) {
+      background-color: #101010;
     }
 
-    .val,
-    .offset {
-      width: 5.5em;
+    tbody tr:nth-child(even) {
+      background-color: #202020;
     }
 
-    .addr {
-      width: 7em;
+    .addr,
+    .length,
+    .offset,
+    .size,
+    .type,
+    .val {
+      font-family: "Courier New", monospace;
+      text-align: right;
+      padding-top: 5px;
+      padding-bottom: 1px;
     }
 
-    #table {
+    .type, .inline-type {
+      font-size: 90%;
+    }
+
+    .type {
+      max-width: 300px;
+    }
+
+    .inline-type {
+      font-family: "Courier New", monospace;
+      margin-right: 3px;
+    }
+
+    .label {
+      max-width: 300px;
+      word-wrap: break-word;
+    }
+
+    .desc-span {
+      max-width: 350px;
+      display: inline-block;
+      word-wrap: break-word;
+    }
+
+    .params, .returns {
+      max-width: 250px;
+    }
+
+    .code-var-notes {
+      font-size: 80%;
+      border: ${grayBorder};
+      padding: 3px 5px;
+      margin: 5px 0px 2px 0px;
+    }
+
+    .notes {
+      max-width: 350px;
+    }
+
+    .has-tooltip {
+      cursor: help;
+      text-decoration: underline dotted;
+      text-decoration-thickness: from-font;
+    }
+
+    .expand {
+      color: #A0A0E0;
+      cursor: pointer;
+      margin-left: 5px;
+    }
+
+    .main-table {
+      table-layout: fixed;
       margin: auto;
+      max-width: 95%;
     }
 
-    #heading-row {
-      display: flex;
+    .sub-table {
+      margin: 5px 0px 2px 0px;
     }
 
     :host(#first) #heading-row {
       background: #101010;
-      border: 1px solid #808080;
-    }
-
-    :host(#first) #table {
-      background: #101010;
-      border: 1px solid #808080;
-      max-width: 90%;
-    }
-
-    .desc,
-    .params,
-    .return {
-      flex: 1;
-    }
-
-    .sort {
-      display: inline-block;
-    }
-
-    :host([sortascending]) .sort {
-      transform: rotate(180deg);
     }
   `;
 
-  /**
-   * The JSON data to render.
-   */
-  @property({ type: Array }) data: Array<{ [key: string]: unknown }> = [];
+  /** The type of data to display in the table */
+  @property({ type: Number }) tableType: TableType = TableType.None;
+  /** The JSON data to render */
+  @property({ type: Array }) entries: GameEntry[] = [];
+  /** All struct definitions in the game */
+  @property({ type: Object }) structs: GameStructDict = {};
+  /** All enum definitions in the game */
+  @property({ type: Object }) enums: GameEnumDict = {};
+  /** Address of parent entry if table is part of row */
+  @property({ type: Number }) parentAddr = NaN;
+  /** Columns that should not be displayed */
+  @property({ type: Object }) hiddenColumns: Set<string> = new Set<string>();
 
-  @property({ type: Object }) structs = {};
-
-  @property({ type: Object }) enums = {} as { [key: string]: unknown };
-
-  @property({ type: String, reflect: true }) version = '';
-
-  @property({ type: Boolean }) isEnum = false;
-
-  @property({ type: String }) parentAddress = '';
-
-  @property({ type: Object }) sortFn?: ((a: any, b: any) => number) | undefined;
-
-  @property({ type: Boolean, reflect: true }) sortAscending = true;
-
-  @property({ type: String }) sortedHeading = '';
-
-  @property({ type: String }) maptype = '';
-
-  override firstUpdated() {
-    const headings = this.getHeadings(this.maptype);
-    this.sortedHeading = headings[0];
-  }
-
-  private getVersionedData(version: string) {
-    return this.data.filter(
-      (item: { [key: string]: unknown }) =>
-        typeof item.addr == 'string' ||
-        version in (item.addr as { [key: string]: string }));
-  }
-
-  private getClasses() {
-    if (this.version) {
-      const classes = ['addr', 'size', 'desc'];
-      if (this.maptype === 'code') {
-        classes.push('params', 'return');
-      }
-      return classes;
-    }
-    if (this.isEnum) {
-      return ['val', 'desc']
-    }
-    return ['offset', 'size', 'desc'];
-  }
-
-  highlight(result: { row: number[], key: string } | void, shouldScroll = true) {
-    if (!result) {
-      return;
-    }
-    const rowElement = this.shadowRoot?.querySelectorAll('map-row')[result.row[0]]!;
-    if (result.row.length == 1) {
-      rowElement.highlightCell(result.key, shouldScroll);
-    } else {
-      rowElement.highlightSubTable(
-        { row: result.row.slice(1), key: result.key }, shouldScroll)
-    }
-  }
-
-  clearHighlights() {
-    const rows = Array.from(this.shadowRoot?.querySelectorAll('map-row')!);
-    rows.forEach(row => row.clearHighlights());
-  }
+  /** Indexes of rows that are expanded */
+  private expandedItems: Set<string> = new Set<string>();
 
   collapseAll() {
-    const rows = Array.from(this.shadowRoot?.querySelectorAll('map-row')!);
-    rows.forEach(row => row.collapseAll());
+    const tables = Array.from(this.shadowRoot?.querySelectorAll('map-table')!);
+    tables.forEach(table => table.collapseAll());
+    this.expandedItems.clear();
+    this.requestUpdate();
   }
 
-  private getHeadings(mapType: string) {
-    if (this.version) {
-      const headings = ['Address', 'Length', 'Description'];
-      if (mapType === 'code') {
-        headings.push('Arguments', 'Returns');
-      }
-      return headings;
+  updateVisibleColumns() {
+    // recursively update sub-tables
+    const tables = this.shadowRoot?.querySelectorAll('map-table')!
+    for (const table of tables) {
+      table.updateVisibleColumns();
     }
-    if (this.isEnum) {
-      return ['Value', 'Description'];
+    this.requestUpdate();
+  }
+
+  private getClasses(): string[] {
+    switch (this.tableType) {
+      case TableType.RamList:
+      case TableType.DataList:
+        return [KEY_ADDR, KEY_LEN, KEY_CAT, KEY_TYPE, KEY_LABEL, KEY_DESC, KEY_NOTES];
+      case TableType.CodeList:
+        return [KEY_ADDR, KEY_LEN, KEY_LABEL, KEY_DESC, KEY_PARAMS, KEY_RET, KEY_NOTES];
+      case TableType.StructList:
+        return [KEY_SIZE, KEY_LABEL, KEY_DESC, KEY_VARS, KEY_NOTES];
+      case TableType.EnumList:
+        return [KEY_LABEL, KEY_DESC, KEY_VALS, KEY_NOTES];
+      case TableType.StructDef:
+        return [KEY_OFF, KEY_LEN, KEY_TYPE, KEY_LABEL, KEY_DESC, KEY_NOTES];
+      case TableType.EnumDef:
+        return [KEY_VAL, KEY_LABEL, KEY_DESC, KEY_NOTES];
+      default:
+        throw new Error('Invalid TableType ' + this.tableType);
+    }
+  }
+
+  //** Get table headings based on map type */
+  private getHeadings(): string[] {
+    return this.getClasses()
+      .filter(k => !this.hiddenColumns.has(k))
+      .map(k => getHeading(k));
+  }
+
+  private isMainTable(): boolean {
+    switch (this.tableType) {
+      case TableType.RamList:
+      case TableType.CodeList:
+      case TableType.DataList:
+      case TableType.StructList:
+      case TableType.EnumList:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  private expand(event: any) {
+    const key: string = event.target.dataset.expandKey;
+    if (this.expandedItems.has(key)) {
+      this.expandedItems.delete(key);
     } else {
-      return ['Offset', 'Size', 'Description'];
+      this.expandedItems.add(key);
     }
+    this.requestUpdate();
   }
 
-  private getData(sortFn: ((a: any, b: any) => number) | undefined) {
-    const data = this.version ? this.getVersionedData(this.version) : this.data;
-    if (sortFn) {
-      const sortedData = data.slice();
-      sortedData.sort(sortFn);
-      return sortedData;
-    } else {
-      return data;
+  private renderType(type: string) {
+    if (this.hiddenColumns.has(KEY_TYPE)) {
+      return '';
     }
+    return html`<td class="type">${type}</td>`
   }
 
-  private trySort(e: Event) {
-    const columnHeadings = ['Address', 'Value', 'Offset', 'Description'];
-    const columnKeys = ['addr', 'val', 'offset', 'desc'];
-    const labelEl =
-      (e.target as HTMLElement).parentElement?.querySelector('.label')! as
-      HTMLElement;
-    const sortEl =
-      (e.target as HTMLElement).parentElement?.querySelector('.sort')! as
-      HTMLElement;
-    // are we sorting by increasing or decreasing?
-    if (sortEl.textContent?.trim()) {
-      // previously sorted, flip direction
-      this.sortAscending = !this.sortAscending;
+  private renderCat(cat?: string) {
+    if (this.hiddenColumns.has(KEY_CAT)) {
+      return '';
     }
-    if (columnHeadings.includes(labelEl.innerText.trim())) {
-      this.sortedHeading = labelEl.innerText.trim();
-      const keyIndex = columnHeadings.indexOf(labelEl.innerText.trim());
-      const key = columnKeys[keyIndex];
-      this.sortFn =
-        (a: { [key: string]: unknown }, b: { [key: string]: unknown }) => {
-          if (key == 'addr' || key == 'offset' || key == 'val') {
-            const left = getHexVal(a[key] as string | { [key: string]: string }, this.version);
-            const right = getHexVal(b[key] as string | { [key: string]: string }, this.version);
-            if (left < right) {
-              return this.sortAscending ? -1 : 1;
-            } else if (left > right) {
-              return this.sortAscending ? 1 : -1;
-            } else {
-              return 0;
-            }
-          } else {
-            const left = a[key] as string;
-            const right = b[key] as string;
-            if (left < right) {
-              return this.sortAscending ? -1 : 1;
-            } else if (left > right) {
-              return this.sortAscending ? 1 : -1;
-            } else {
-              return 0;
-            }
+    const catName = cat ? CATEGORIES[cat] : undefined;
+    return html`<td class="cat">${catName ?? ''}</td>`
+  }
+
+  private renderVarLength(entry: GameVar) {
+    if (this.hiddenColumns.has(KEY_LEN)) {
+      return '';
+    }
+    const len = toHex(entry.getLength(this.structs));
+    const toolTip = entry.getLengthToolTip(this.structs);
+    return html`<td
+      class="length ${toolTip ? 'has-tooltip' : 'no-tooltip'}"
+      title="${toolTip}">${len}</td>`;
+  }
+
+  private hasSubTable(entry: GameEntry): Boolean {
+    if (entry instanceof GameVar) {
+      const gv = entry as GameVar;
+      const isEnum = Boolean(gv.enum) && gv.enum! in this.enums;
+      const isStruct = gv.spec() in this.structs;
+      return isEnum || isStruct;
+    } else if (entry instanceof GameStruct ||
+      entry instanceof GameEnum) {
+      return true;
+    }
+    return false;
+  }
+
+  private renderSubTable(entry: GameEntry) {
+    if (entry instanceof GameVar) {
+      const gv = entry as GameVar;
+      if (gv.enum && gv.enum! in this.enums) {
+        const ge: GameEnum = this.enums[gv.enum!];
+        return this.renderEnumDef(ge);
+      } else if (gv.structName && gv.structName! in this.structs) {
+        const gs = this.structs[gv.structName!];
+        let pa = NaN;
+        if (!gv.isPtr()) {
+          if (this.tableType === TableType.RamList ||
+            this.tableType === TableType.DataList) {
+            pa = (entry as GameData).addr;
+          } else if (this.parentAddr) {
+            pa = this.parentAddr + (entry as GameRelVar).offset;
           }
         }
-    } else {
-      this.sortedHeading = '';
-      this.sortFn = undefined;
+        return this.renderStructDef(gs, pa);
+      }
+    } else if (entry instanceof GameStruct) {
+      return this.renderStructDef(entry as GameStruct);
+    } else if (entry instanceof GameEnum) {
+      return this.renderEnumDef(entry as GameEnum);
+    }
+    return '';
+  }
+
+  private renderLabel(label: string) {
+    if (this.hiddenColumns.has(KEY_LABEL)) {
+      return '';
+    }
+    return html`<td class="label">${label}</td>`
+  }
+
+  private renderToggleAndTable(entry: GameEntry) {
+    let toggle: any = '';
+    let table: any = '';
+    if (this.hasSubTable(entry)) {
+      const key = entry.label;
+      const expanded = this.expandedItems.has(key);
+      toggle = html`<span class="expand" data-expand-key="${key}"
+        @click="${this.expand}">[${expanded ? '−' : '+'}]</span>`;
+      if (expanded) {
+        table = this.renderSubTable(entry);
+      }
+    }
+    return [toggle, table];
+  }
+
+  private renderDesc(entry: GameEntry) {
+    const [toggle, table] = this.renderToggleAndTable(entry);
+    return html`<td class="desc">
+      <span class="desc-span">${entry.desc}${toggle}</span>
+      ${table}
+    </td>`;
+  }
+
+  private renderNotes(notes?: string) {
+    if (this.hiddenColumns.has(KEY_NOTES)) {
+      return '';
+    }
+    return html`<td class="notes">${notes}</td>`
+  }
+
+  private renderDataVarEntry(entry: GameData) {
+    return html`<tr>
+      <td class="addr">${toHex(entry.addr)}</td>
+      ${this.renderVarLength(entry)}
+      ${this.renderCat(entry.catStr())}
+      ${this.renderType(entry.typeStr())}
+      ${this.renderLabel(entry.label)}
+      ${this.renderDesc(entry)}
+      ${this.renderNotes(entry.notes)}
+    </tr>`;
+  }
+
+  private renderCodeLength(entry: GameCode) {
+    if (this.hiddenColumns.has(KEY_LEN)) {
+      return '';
+    }
+    const toolTip = entry.getToolTip();
+    return html`<td class="length ${toolTip ? 'has-tooltip' : 'no-tooltip'}"
+      title="${toolTip}">${toHex(entry.size)}
+    </td>`;
+  }
+
+  private renderCodeVarDesc(cv: GameVar, paramIdx: number, entryLabel: string) {
+    const notes = cv.notes ? cv.notes : '';
+    let toggle: any = '';
+    let noteBox: any = '';
+    if (notes) {
+      const key = `${entryLabel}:${paramIdx}`;
+      const expanded = this.expandedItems.has(key);
+      toggle = html`<span class="expand" data-expand-key="${key}"
+        @click="${this.expand}">[?]</span>`;
+      if (expanded) {
+        noteBox = html`<div class="code-var-notes">${notes}</div>`
+      }
+    }
+    return html`<span class="desc-span">${cv.desc}${toggle}</span>
+      ${noteBox}`;
+  }
+
+  private renderCodeVar(cv: GameVar, paramIdx: number, entryLabel: string) {
+    return html`<div>
+      <span class="inline-type">${cv.typeStr()}</span>
+      ${this.renderCodeVarDesc(cv, paramIdx, entryLabel)}
+    </div>`;
+  }
+
+  private renderCodeArgs(entry: GameCode) {
+    if (this.hiddenColumns.has(KEY_PARAMS)) {
+      return '';
+    }
+    const params = entry.params;
+    if (!params) {
+      return html`<td>void</td>`;
+    }
+    return html`<td class="params">${params.map(
+      (arg, pIdx) => this.renderCodeVar(arg, pIdx, entry.label))}
+    </td>`;
+  }
+
+  private renderCodeRet(entry: GameCode) {
+    if (this.hiddenColumns.has(KEY_RET)) {
+      return '';
+    }
+    const ret = entry.return;
+    if (!ret) {
+      return html`<td>void</td>`;
+    }
+    return html`<td class="returns">${this.renderCodeVar(ret, -1, entry.label)}</td>`;
+  }
+
+  private renderCodeEntry(entry: GameCode) {
+    return html`<tr>
+      <td class="addr">${toHex(entry.addr)}</td>
+      ${this.renderCodeLength(entry)}
+      ${this.renderLabel(entry.label)}
+      <td class="desc">
+        <span class="desc-span">${entry.desc}</span>
+      </td>
+      ${this.renderCodeArgs(entry)}
+      ${this.renderCodeRet(entry)}
+      ${this.renderNotes(entry.notes)}
+    </tr>`;
+  }
+
+  private renderStructSize(size: number) {
+    if (this.hiddenColumns.has(KEY_SIZE)) {
+      return '';
+    }
+    return html`<td class="size">${toHex(size)}</td>`;
+  }
+
+  private renderStructEntry(entry: GameStruct) {
+    const [toggle, table] = this.renderToggleAndTable(entry);
+    const vars = html`<td class="vars">${toggle}${table}</td>`;
+    return html`<tr>
+      ${this.renderStructSize(entry.size)}
+      ${this.renderLabel(entry.label)}
+      <td class="desc">
+        <span class="desc-span">${entry.desc}</span>
+      </td>
+      ${vars}
+      ${this.renderNotes(entry.notes)}
+    </tr>`;
+  }
+
+  private renderEnumEntry(entry: GameEnum) {
+    const [toggle, table] = this.renderToggleAndTable(entry);
+    const vals = html`<td class="vals">${toggle}${table}</td>`;
+    return html`<tr>
+      ${this.renderLabel(entry.label)}
+      <td class="desc">
+        <span class="desc-span">${entry.desc}</span>
+      </td>
+      ${vals}
+      ${this.renderNotes(entry.notes)}
+    </tr>`;
+  }
+
+  private renderStructVar(entry: GameRelVar) {
+    const toolTip = entry.getOffsetToolTip(this.parentAddr);
+    // structs can have categories, but they're left out to save space
+    return html`<tr>
+      <td class="offset ${toolTip ? 'has-tooltip' : 'no-tooltip'}"
+        title="${toolTip}">
+        ${toHex(entry.offset)}
+      </td>
+      ${this.renderVarLength(entry)}
+      ${this.renderType(entry.typeStr())}
+      ${this.renderLabel(entry.label)}
+      ${this.renderDesc(entry)}
+      ${this.renderNotes(entry.notes)}
+    </tr>`;
+  }
+
+  private renderStructDef(entry: GameStruct, parentAddr: number = NaN) {
+    return html`<map-table
+      .tableType="${TableType.StructDef}"
+      .entries="${entry.vars}"
+      .structs="${this.structs}"
+      .enums="${this.enums}"
+      .parentAddr="${parentAddr}"
+      .hiddenColumns="${this.hiddenColumns}">
+    </map-table>`
+  }
+
+  private renderEnumVal(entry: GameEnumVal) {
+    return html`<tr>
+      <td class="val">${toHex(entry.val)}</td>
+      ${this.renderLabel(entry.label)}
+      <td class="desc">${entry.desc}</td>
+      ${this.renderNotes(entry.notes)}
+    </tr>`;
+  }
+
+  private renderEnumDef(entry: GameEnum) {
+    return html`<map-table
+      .tableType="${TableType.EnumDef}"
+      .entries="${entry.vals}"
+      .structs="${this.structs}"
+      .enums="${this.enums}"
+      .hiddenColumns="${this.hiddenColumns}">
+    </map-table>`
+  }
+
+  private renderRow(item: GameEntry) {
+    switch (this.tableType) {
+      case TableType.RamList:
+      case TableType.DataList:
+        const gd = item as GameData;
+        return this.renderDataVarEntry(gd);
+      case TableType.CodeList:
+        const gc = item as GameCode;
+        return this.renderCodeEntry(gc);
+      case TableType.StructList:
+        const gs = item as GameStruct;
+        return this.renderStructEntry(gs);
+      case TableType.EnumList:
+        const ge = item as GameEnum;
+        return this.renderEnumEntry(ge);
+      case TableType.StructDef:
+        const grv = item as GameRelVar;
+        return this.renderStructVar(grv);
+      case TableType.EnumDef:
+        const gel = item as GameEnumVal;
+        return this.renderEnumVal(gel);
+      default:
+        throw new Error('Invalid TableType');
     }
   }
 
   override render() {
     return html`
-      <div id="table">
-        <div id="heading-row">
-          ${this.getHeadings(this.maptype)
-        .map(
-          (heading, index) => html`
-              <span class="heading ${this.getClasses()[index]}"
-                    @click="${this.trySort}">
-                <span class="label">
-                  ${heading}
-                </span>
-                <span class="sort">
-                  ${(this.sortedHeading == heading) ? html`&#x25BE;` : html``}
-                </span>
-              </span>`)}
-        </div>
-        <div>
-          ${this.getData(this.sortFn)
-        .map((item: { [key: string]: unknown }, index: number) => {
-          return html`<map-row
-            .maptype="${this.maptype}"
-            .data="${item}"
-            .structs="${this.structs}"
-            .enums="${this.enums}"
-            .version="${this.version}"
-            ?odd="${index % 2 == 0}"
-            ?isEnum="${this.isEnum}"
-            .parentAddress="${this.parentAddress}">
-            </map-row>`;
+      <table class="${this.isMainTable() ? 'main-table' : 'sub-table'}">
+        <tr id="heading-row">
+          ${this.getHeadings().map(heading => html`
+            <th>${heading}</th>`)}
+        </tr>
+        ${this.entries.map((item: GameEntry) => {
+          return this.renderRow(item);
         })}
-        </div>
-      </div>
+      </table>
     `;
   }
 }
