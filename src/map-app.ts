@@ -189,7 +189,7 @@ export class MapApp extends LitElement {
       case 'fe6':
         return ['J'];
       case 'fe8':
-        return ['U'];
+        return ['U', 'J'];
       default:
         return ['J', 'U', 'E'];
     }
