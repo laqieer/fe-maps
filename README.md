@@ -6,6 +6,15 @@ Source code for app at laqieer.github.io/fe-maps
 
 *Inspired by [GBA Metroid Data Maps](https://github.com/biosp4rk/maps)*
 
+## Powered by
+
+These maps are built from ROM/RAM labels extracted by the companion
+[`fe-info`](https://github.com/laqieer/fe-info) tooling with `readelf` and `nm -l`:
+
+- [FE6: The Binding Blade](https://github.com/FireEmblemUniverse/fireemblem6j) - provides FE6 section and symbol data.
+- [FE8U: The Sacred Stones](https://github.com/laqieer/fireemblem8u) - provides FE8U section and symbol data.
+- [FE8J: 聖魔の光石 / Seima no Kouseki](https://github.com/laqieer/fireemblem8j) - provides FE8J section and symbol data.
+
 ## Filter Options
 - Filters are case insensitive
 - Separate search terms with spaces
