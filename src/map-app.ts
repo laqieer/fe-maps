@@ -209,6 +209,14 @@ export class MapApp extends LitElement {
         label: 'RAM',
         value: 'ram',
       },
+      {
+        label: 'Structs',
+        value: 'structs',
+      },
+      {
+        label: 'Enums',
+        value: 'enums',
+      },
     ];
   }
 
