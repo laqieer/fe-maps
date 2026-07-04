@@ -286,6 +286,22 @@ export class MapApp extends LitElement {
     return baseUrl + fileName;
   }
 
+  /**
+   * Normalizes fetched JSON into an iterable list of entries.
+   * The enums/structs files are expected to be arrays, but empty data may be
+   * serialized as an object (`{}`); coerce such objects to their values so
+   * iteration never throws "is not iterable".
+   */
+  private static asEntryList(data: unknown): DictEntry[] {
+    if (Array.isArray(data)) {
+      return data as DictEntry[];
+    }
+    if (data !== null && typeof data === 'object') {
+      return Object.values(data as { [key: string]: DictEntry });
+    }
+    return [];
+  }
+
   async fetchData(first: boolean, keepFilter: boolean) {
     if (!this.game || !this.version || !this.map) {
       return;
@@ -300,20 +316,21 @@ export class MapApp extends LitElement {
     const enumList = await fetch(this.getJsonUrl('enums'))
       .then(response => response.json());
     this.enums = {};
-    for (const entry of enumList) {
-      this.enums[entry[KEY_LABEL]] = new GameEnum(entry)
+    for (const entry of MapApp.asEntryList(enumList)) {
+      this.enums[entry[KEY_LABEL] as string] = new GameEnum(entry)
     }
 
     const structList = await fetch(this.getJsonUrl('structs'))
       .then(response => response.json());
     this.structs = {};
-    for (const entry of structList) {
-      this.structs[entry[KEY_LABEL]] = new GameStruct(entry)
+    for (const entry of MapApp.asEntryList(structList)) {
+      this.structs[entry[KEY_LABEL] as string] = new GameStruct(entry)
     }
 
     if (this.tableHasAddr()) {
       let fullData: DictEntry[] = await fetch(this.getJsonUrl(this.map))
-        .then(response => response.json());
+        .then(response => response.json())
+        .then(data => MapApp.asEntryList(data));
       fullData.forEach(entry => this.getVersionEntry(entry));
       fullData = fullData.filter(entry => entry.addr !== null);
       if (this.tableIs(TableType.CodeList)) {
