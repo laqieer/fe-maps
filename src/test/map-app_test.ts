@@ -5,6 +5,7 @@
  */
 
 import { MapApp } from '../map-app.js';
+import { GameData } from '../entry-types.js';
 
 import { assert } from '@open-wc/testing';
 
@@ -39,6 +40,27 @@ suite('map-app', () => {
     } finally {
       window.fetch = originalFetch;
     }
+  });
+
+  // Regression test for issue #1 (ROM Data & RAM):
+  // data/ram entries may have a null type (plain labels) or a struct type whose
+  // struct isn't loaded. Building them and computing length must not throw.
+  test('GameData tolerates null-type and unknown-struct entries', () => {
+    const structs = {};
+    // Untyped label entry (type: null) — must not throw on construction.
+    const untyped = new GameData(
+      { label: 'Init', desc: 'Init', type: null, addr: '8000000' });
+    assert.strictEqual(untyped.typeStr(), '');
+    assert.isNaN(untyped.getLength(structs));
+    // Struct-typed entry whose struct isn't loaded — length is NaN, no throw.
+    const structVar = new GameData(
+      { label: 'AnimVar', desc: 'x', type: 'BattleAnim', addr: '8000010' });
+    assert.strictEqual(structVar.typeStr(), 'BattleAnim');
+    assert.isNaN(structVar.getLength(structs));
+    // Primitive entry still works.
+    const prim = new GameData(
+      { label: 'Prim', desc: 'y', type: 'u16', addr: '8000020', count: '4' });
+    assert.strictEqual(prim.getLength(structs), 8);
   });
 
 });

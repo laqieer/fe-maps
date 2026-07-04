@@ -223,7 +223,8 @@ export class MapTable extends LitElement {
     if (this.hiddenColumns.has(KEY_LEN)) {
       return '';
     }
-    const len = toHex(entry.getLength(this.structs));
+    const rawLen = entry.getLength(this.structs);
+    const len = isNaN(rawLen) ? '' : toHex(rawLen);
     const toolTip = entry.getLengthToolTip(this.structs);
     return html`<td
       class="length ${toolTip ? 'has-tooltip' : 'no-tooltip'}"

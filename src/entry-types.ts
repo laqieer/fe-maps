@@ -23,7 +23,8 @@ export enum PrimType {
   U32,
   S32,
   Struct,
-  Void
+  Void,
+  None
 }
 
 const PRIM_TO_STR = {
@@ -35,7 +36,8 @@ const PRIM_TO_STR = {
   [PrimType.U32]: "u32",
   [PrimType.S32]: "s32",
   [PrimType.Struct]: "struct",
-  [PrimType.Void]: "void"
+  [PrimType.Void]: "void",
+  [PrimType.None]: ""
 }
 
 const STR_TO_PRIM = swap_key_value(PRIM_TO_STR);
@@ -116,7 +118,7 @@ class GameVar extends GameEntry {
 
   constructor(entry: DictEntry) {
     super(entry);
-    this.parseType(entry[KEY_TYPE] as string);
+    this.parseType(entry[KEY_TYPE] as string | null | undefined);
     const arrCount = entry[KEY_COUNT] as string;
     this.arrCount = arrCount ? parseInt(arrCount, 16) : undefined;
     const cat = entry[KEY_CAT] as string;
@@ -167,7 +169,8 @@ class GameVar extends GameEntry {
       case PrimType.Struct:
         const se = structs[this.structName!];
         if (se === undefined) {
-          throw new Error(`Invalid struct name ${this.structName}`);
+          // Unknown struct (e.g. structs data not available): size is unknown.
+          return NaN;
         }
         return se.size;
     }
@@ -199,6 +202,9 @@ class GameVar extends GameEntry {
       return '';
     }
     const size = this.getSize(structs);
+    if (isNaN(size)) {
+      return 'Count: ' + toHex(count);
+    }
     return 'Size: ' + toHex(size) + '\nCount: ' + toHex(count);
   }
 
@@ -227,7 +233,15 @@ class GameVar extends GameEntry {
     return spec;
   }
 
-  private parseType(type: string) {
+  private parseType(type: string | null | undefined) {
+    // Some entries (e.g. plain labels/symbols) have no C type.
+    // Treat a missing/empty type as "none" instead of crashing on split.
+    if (!type) {
+      this.primitive = PrimType.None;
+      this.structName = undefined;
+      this.declaration = undefined;
+      return;
+    }
     const parts = type.split(' ');
     // primitive
     const prim = parts[0];
